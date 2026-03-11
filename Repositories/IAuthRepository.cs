@@ -1,6 +1,6 @@
 using LoginApi.Models;
 
-namespace LoginApi.Repository
+namespace LoginApi.Repositories
 {
     public interface IAuthRepository
     {
@@ -8,7 +8,16 @@ namespace LoginApi.Repository
         Task RegisterUser (User user);
 
         //login
-        Task LoginUser(User user);
+        // Task LoginUser(User user);
+
+        //Check By email
+        Task<User?> CheckByEmail(string email);
+
+        //Update user
+        Task UpdateUser(User user);
+
+
+        Task<User?> GetByResetToken (string token);
 
         
     }

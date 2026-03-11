@@ -2,16 +2,12 @@ using System.ComponentModel.DataAnnotations;
 
 namespace LoginApi.Models
 {
-    public class  LoginDto
+    public class  ForgetPasswordDto
     {
 
         [EmailAddress(ErrorMessage = "Invalid Email Format")]
         [Required(ErrorMessage = "Email is required")]
         public required string Email{get;set;}
-
-        [MinLength(8,ErrorMessage = "Password must be at least 8 characters long")]
-        [Required(ErrorMessage ="Password is Required")]
-        public required string Password{get;set;}
 
     }
 }

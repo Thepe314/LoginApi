@@ -2,11 +2,8 @@ using System.ComponentModel.DataAnnotations;
 
 namespace LoginApi.Models
 {
-    public class  SignupDto
-    { 
-        [Required(ErrorMessage = "Full name is required")]
-        [MinLength(3, ErrorMessage = "Full name must be at least 3 characters long")]
-        public required string FullName{get;set;}
+    public class  ResetPasswordDto
+    {
 
         [EmailAddress(ErrorMessage = "Invalid Email Format")]
         [Required(ErrorMessage = "Email is required")]
@@ -15,5 +12,9 @@ namespace LoginApi.Models
         [MinLength(8,ErrorMessage = "Password must be at least 8 characters long")]
         [Required(ErrorMessage ="Password is Required")]
         public required string Password{get;set;}
+
+        [Required(ErrorMessage ="Token is Required")]
+        public required string Token {get;set;}
+
     }
 }

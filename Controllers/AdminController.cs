@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
+using System.Security.Claims;
 using LoginApi.Data;
-
+using LoginApi.Models;
 using LoginApi.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -19,7 +20,7 @@ namespace LoginApi.Controllers
         private readonly IAdminRepository _AdminRepo;
 
 
-        public AdminController(IAdminRepository adminRepo, IMemoryCache mCache)
+        public AdminController(IAdminRepository adminRepo)
         {
             _AdminRepo = adminRepo;
           
@@ -30,15 +31,34 @@ namespace LoginApi.Controllers
         [HttpGet("Get-All-Users")]
         public async Task<IActionResult> ListAllUser()
         {
-            if(!User.IsInRole("Admin"))
+
+            //Validated Token
+            var userIdClaim = User.FindFirst("UserId")?.Value;
+            if(!int.TryParse(userIdClaim, out int userId))
             {
-                return StatusCode(403,"Access denied. Admins only");
+                return Unauthorized("Invalid Token");
+            } 
+
+            //Map JWT To DTO
+            var currentUser = new UserDto
+            {
+                //User in this is a ClaimsPrincipal, it takes the values from the payload.
+                Email = User.FindFirst(c => c.Type == ClaimTypes.Email)?.Value ?? "",
+                Role = User.FindFirst(c=>c.Type == ClaimTypes.Role)?.Value ?? "",
+                FullName = User.FindFirst(c => c.Type == "FullName")?.Value ?? "",
+
+            };
+
+            //Check the Role
+            if(currentUser.Role !="Admin")
+            {
+                return StatusCode(403,new{Message="Access denied. Admins only"});
             }
 
-           
+           //List the Users
             var user = await _AdminRepo.ListAllUsers();
 
-           return Ok(new{Message = "Here are the listed users:",user});
+           return Ok(new{Message = "Here are the listed users:",RequestedBy = currentUser.Email,user});
         }
 
         // [HttpGet("cache-status")]
@@ -54,7 +74,7 @@ namespace LoginApi.Controllers
         //     else
         //     {
         //         return Ok(new { 
-        //             Status = "❌ Cache is EMPTY - will fetch from DB on next request"
+        //             Status = " Cache is EMPTY - will fetch from DB on next request"
         //         });
         //     }
         // }

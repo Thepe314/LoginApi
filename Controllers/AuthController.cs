@@ -18,11 +18,17 @@ namespace LoginApi.Controllers
         //readonly
         private readonly JwtService _jwtService;
 
-        public AuthController(IAuthRepository aRepo, JwtService jwtService)
+        private readonly EncryptionService _encrytionService;
+
+        public AuthController(IAuthRepository aRepo, JwtService jwtService, EncryptionService encryptionService)
         {
             _aRepo = aRepo;
 
             _jwtService = jwtService;
+
+            _encrytionService = encryptionService;
+
+
         }
 
         //Endpoints
@@ -36,19 +42,19 @@ namespace LoginApi.Controllers
             var existing = await _aRepo.CheckByEmail(email);
             if(existing != null)
             {
-                return BadRequest("Email already registered");
+                return Conflict(new{Message = "Email already registered"});
             }
 
             var user = new User
             {
-                FullName = dto.FullName,
-                Email = dto.Email,
-                Password = BCrypt.Net.BCrypt.HashPassword(dto.Password),
+                FullName = dto.FullName.Trim(),
+                Email = email,
+                Password = _encrytionService.Encrypt(dto.Password), //Encrypt password
                 Role = "User"
             };   
             await _aRepo.RegisterUser(user);
 
-            return Ok("Successfully Signed up");
+            return Ok(new{Message="Successfully Signed up"});
         }
        
 
@@ -65,7 +71,7 @@ namespace LoginApi.Controllers
             }
 
             //Verify password 
-            bool VerifyPassword = BCrypt.Net.BCrypt.Verify(dto.Password, existing.Password);
+            bool VerifyPassword = _encrytionService.VerifyPassword(dto.Password,existing.Password);
 
             if(!VerifyPassword)
             {
@@ -84,7 +90,7 @@ namespace LoginApi.Controllers
         public async Task<IActionResult> ForgetPassword(ForgetPasswordDto dto)
         {
             //Check if Email exists
-            var user = await _aRepo.CheckByEmail(dto.Email);
+            var user = await _aRepo.CheckByEmail(dto.Email.Trim().ToLower());
 
             if(user == null)
             {
@@ -98,7 +104,7 @@ namespace LoginApi.Controllers
 
             await _aRepo.UpdateUser(user);
 
-            return Ok(new{Message = "Here is the refresh token", ResetToken = resetToken});
+            return Ok(new{Message = "Reset Token has been sent, Check your database"});
 
         }
 
@@ -111,11 +117,16 @@ namespace LoginApi.Controllers
             var existing = await _aRepo.GetByResetToken(dto.Token);
             if(existing == null || existing.ResetToken != dto.Token || existing.ResetTokenExpiry <DateTime.UtcNow)
             {
-                return BadRequest("Invalid or expired reset token");
+                return BadRequest(new{Message ="Invalid or expired reset token"});
             }
-            
-            
-               existing.Password = BCrypt.Net.BCrypt.HashPassword(dto.Password);
+
+            bool isSamePassword = _encrytionService.VerifyPassword(dto.Password,existing.Password);
+            if(isSamePassword)
+            {
+                return BadRequest(new{Message="Password cannot be reused"});
+            }
+
+               existing.Password = _encrytionService.Encrypt(dto.Password);
                existing.ResetToken = null;
                existing.ResetTokenExpiry = null;
 

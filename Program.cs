@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System.Text;
 using LoginApi.Data;
 using LoginApi.Models;
@@ -20,7 +21,10 @@ builder.Services.AddMemoryCache();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c=>
     {
-        //Add jwt authentication to swagger
+        // Configure Swagger to support JWT Bearer authentication:
+        // This allows you to enter a JWT token in the Swagger UI “Authorize” button,
+        // which Swagger will then send in the Authorization header on API requests.
+        // Effectively, it enables testing protected endpoints with your JWT token.
         c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
         {
             Name = "Authorization",
@@ -28,7 +32,7 @@ builder.Services.AddSwaggerGen(c=>
             Scheme = "Bearer",
             BearerFormat = "JWT",
             In = ParameterLocation.Header,
-            Description = "Enter your JWT token. The 'Bearer' prefix is added automatically."
+            Description = "Enter your JWT token."
         });
 
          c.AddSecurityRequirement(document => new OpenApiSecurityRequirement
@@ -43,9 +47,18 @@ builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 builder.Services.AddScoped<IAdminRepository, AdminRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddSingleton<JwtService>();
+builder.Services.AddSingleton<EncryptionService>();
 
 //Inject DI of database
 builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("AuthConnection")));
+
+// var Encryptedkey = new byte[32];
+// RandomNumberGenerator.Fill(Encryptedkey);
+// Console.WriteLine("NEW KEY: " + Convert.ToBase64String(Encryptedkey));
+
+var testKey = builder.Configuration["EncryptionSettings:Key"];
+var keyBytes = Convert.FromBase64String(testKey);
+Console.WriteLine($"Key length: {keyBytes.Length} bytes");
 
 //Creating a variable to store our JwtSettings in appsettings (We can use this to quick access it)
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
@@ -56,7 +69,7 @@ var key = Encoding.ASCII.GetBytes(jwtSettings["SecretKey"]);
 // Configuring JWT authentication schemes
 services.AddAuthentication(options =>
 {
-    //
+    
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
     
@@ -78,11 +91,14 @@ services.AddAuthentication(options =>
 var app = builder.Build();
 
 // Seed an Admin user on startup if one doesn't already exist
+//Creating a temp scope that will be discarded after use
 using (var scope = app.Services.CreateScope())
 {
     // Get the database context to interact with the database
     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+     var encryption = scope.ServiceProvider.GetRequiredService<EncryptionService>();
 
+    //Check if there any user with role of admin if yes, give message if no,create new user.
     if (!context.Users.Any(u => u.Role == "Admin"))
     {
         // Creating the default Admin user
@@ -90,7 +106,7 @@ using (var scope = app.Services.CreateScope())
         {
             FullName = "Admin",
             Email = "Admin@gmail.com",
-            Password = BCrypt.Net.BCrypt.HashPassword("Admin123"), //Password is hashed
+            Password = encryption.Encrypt("Admin123"), //Password is encrypted
             Role = "Admin"
         };
         //Save admin to database

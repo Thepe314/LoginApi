@@ -1,9 +1,10 @@
 using System.ComponentModel.DataAnnotations;
+using System.Security.Claims;
 using LoginApi.Models;
 using LoginApi.Repositories;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
+
 
 
 namespace LoginApi.Controllers
@@ -21,7 +22,7 @@ namespace LoginApi.Controllers
             _uRepo = uRepo;
         }
 
-        //Endpoints
+            //Endpoints
         [HttpGet("Profile")]
         public async Task<IActionResult> Profile()
         {
@@ -29,30 +30,25 @@ namespace LoginApi.Controllers
             var userIdClaim = User.FindFirst("UserId")?.Value;
             if (!int.TryParse(userIdClaim, out int userId))
             {
-                return Unauthorized("Invalid token");
+                return Unauthorized(new{Message="Invalid token"});
             }
 
-              if(!User.IsInRole("User"))
+            //Map the jwt to Dto
+             var currentUser = new UserDto
             {
-                return StatusCode(403,"Access denied. Users only");
-            }
-
-            //Check user by id
-            var user = await _uRepo.GetbyId(userId);
-            if(user == null)
-            {
-                return NotFound("User not Found");
-            }
-
-            var userDto = new UserDto
-            {
-                Email = user.Email,
-                FullName = user.FullName,
-                Role = user.Role,
+                Email = User.FindFirst(u => u.Type == ClaimTypes.Email)?.Value ?? "",
+                FullName = User.FindFirst(u => u.Type == "FullName")?.Value ?? "",
+                Role = User.FindFirst(u => u.Type == ClaimTypes.Role)?.Value ?? "",
             };
-            
 
-            return Ok(new{Message = "Here is the profile details",userDto});
+            //Check role
+            if(currentUser.Role != "User")
+            {
+                return StatusCode(403,new{Message="Access Denied. You do not have permission"});
+            }
+
+
+            return Ok(new{Message = "Here is the profile details",currentUser});
 
         }
 
@@ -65,7 +61,7 @@ namespace LoginApi.Controllers
             var userIdClaim = User.FindFirst("UserId")?.Value;
             if(!int.TryParse(userIdClaim,out int userId))
             {
-                return Unauthorized("Invalid Token");
+                return Unauthorized(new{Message="Invalid Token"});
             }
 
             //Then we check if User is really user
@@ -84,14 +80,14 @@ namespace LoginApi.Controllers
             if(!string.IsNullOrWhiteSpace(dto?.Email) && dto.Email != existing.Email)
             {
                  //Check if email is unique
-                var email = await _uRepo.GetUserByEmail(dto.Email);
+                var email = await _uRepo.GetUserByEmail(dto.Email.Trim().ToLower());
 
                 if(email != null && email.Id != userId)
                 {
                     return Conflict(new{Message=" Email already exists"});
                 }
 
-                 existing.Email = dto.Email.Trim();
+                 existing.Email = dto.Email.Trim().ToLower();
             }
            
             //Update if Fullname is Provided

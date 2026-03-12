@@ -8,7 +8,7 @@ namespace LoginApi.Service
 {
     public class JwtService
     {
-        //read only
+        //read only (Store)
         private readonly IConfiguration _config;
         private readonly string _secretKey;
 
@@ -38,7 +38,8 @@ namespace LoginApi.Service
                 {
                     new Claim("UserId",user.Id.ToString()), //Custom Claim
                     new Claim(ClaimTypes.Email,user.Email), //Standard Claim
-                    new Claim(ClaimTypes.Role, user.Role) //Standard Claim
+                    new Claim(ClaimTypes.Role, user.Role), //Standard Claim
+                    new Claim("FullName", user.FullName)
                 };
 
                 //Creating signing key and credentials

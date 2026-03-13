@@ -42,6 +42,19 @@ builder.Services.AddSwaggerGen(c=>
     }
 );
 
+//Enable Cors
+builder.Services.AddCors(options =>
+{
+     options.AddPolicy("AllowFrontend", policy =>
+    {
+            policy.WithOrigins("")
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
+
+
+   
 //Inject DI of Repo
 builder.Services.AddScoped<IAuthRepository, AuthRepository>();
 builder.Services.AddScoped<IAdminRepository, AdminRepository>();
@@ -107,6 +120,8 @@ using (var scope = app.Services.CreateScope())
             FullName = "Admin",
             Email = "Admin@gmail.com",
             Password = encryption.Encrypt("Admin123"), //Password is encrypted
+            ContactNumber = "1234567890",
+            Address = "Patan Darbar Square,Lalitpur 44600",
             Role = "Admin"
         };
         //Save admin to database
@@ -124,6 +139,8 @@ using (var scope = app.Services.CreateScope())
 app.UseSwagger();
 
 app.UseSwaggerUI();
+
+app.UseCors("AllowFrontend");
 
 app.UseAuthentication();
 app.UseAuthorization();

@@ -50,6 +50,8 @@ namespace LoginApi.Controllers
                 FullName = dto.FullName.Trim(),
                 Email = email,
                 Password = _encrytionService.Encrypt(dto.Password), //Encrypt password
+                ContactNumber = dto.ContactNumber.Trim(),
+                Address = dto.Address.Trim(),
                 Role = "User"
             };   
             await _aRepo.RegisterUser(user);

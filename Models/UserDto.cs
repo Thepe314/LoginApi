@@ -11,6 +11,10 @@ namespace LoginApi.Models
         [EmailAddress(ErrorMessage ="Email is invalid format")]
         public required string Email{get;set;}
 
+        public string? ContactNumber {get;set;}
+
+        public string? Address{get;set;}
+
          public required string Role { get; set; } 
     }
 }

@@ -8,6 +8,8 @@ namespace LoginApi.Repositories
        //List of all users on database
        Task<IEnumerable<UserDto>> ListAllUsers();
 
+       Task CreateUser(User user);
+
         
     }
 

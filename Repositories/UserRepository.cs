@@ -13,9 +13,14 @@ namespace LoginApi.Repositories
         //readonly
         private readonly ApplicationDbContext _context;
 
-        public UserRepository(ApplicationDbContext context)
+        private readonly string _connectionString;
+
+        public UserRepository(ApplicationDbContext context, IConfiguration configuration)
         {
             _context = context;
+
+            _connectionString = configuration.GetConnectionString("AuthConnection") 
+            ?? throw new InvalidOperationException("Connection String 'AuthConnection' cannot be found");
         }
 
        //Get user by id

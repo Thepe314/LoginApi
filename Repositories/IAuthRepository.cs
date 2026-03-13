@@ -8,7 +8,7 @@ namespace LoginApi.Repositories
         Task RegisterUser (User user);
 
         //login
-        // Task LoginUser(User user);
+        Task<User?>LoginUser(User user);
 
         //Check By email
         Task<User?> CheckByEmail(string email);
